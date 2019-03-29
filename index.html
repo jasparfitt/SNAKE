@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Snake</title>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css" integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link href="./style.css" rel="stylesheet" />
+  </head>
+  <body>
+    <div class="score-board">
+      <div class="player-1 badge">
+        <span>Player 1: </span>
+        <span id="score2">0</span>
+      </div>
+
+      <div class="player-2 badge">
+        <span>Player 2: </span>
+        <span id="score1">0</span>
+      </div>
+    </div>
+    <div class="game-control">
+      <div class="controls-1 controls">
+        <span class="up button"><span>W</span></span>
+        <span class="left button"><span>A</span></span>
+        <span class="down button"><span>S</span></span>
+        <span class="right button"><span>D</span></span>
+      </div>
+      <canvas id="gameCanvas" width="800" height="800"></canvas>
+      <div class="controls-2 controls">
+        <span class="up button"><span><i class="fas fa-chevron-up"></i></span></span>
+        <span class="left button"><span><i class="fas fa-chevron-left"></i></span></span>
+        <span class="right button"><span><i class="fas fa-chevron-right"></i></span></span>
+        <span class="down button"><span><i class="fas fa-chevron-down"></i></span></span>
+      </div>
+    </div>
+
+
+    <script>
+      const unit = 16;
+
+      const screenHeight = 800;
+      const screenWidth = 800;
+
+      const yUnits = screenHeight / unit;
+      const xUnits = screenWidth / unit;
+
+      const yCenter = yUnits / 2.0;
+      const xCenter = xUnits / 2.0;
+
+      let changingDirection1 = false;
+      let changingDirection2 = false;
+
+      const snakeRightTop = [
+        {y: (Math.round(yCenter * 0.5) + 2) * unit, x: Math.round(xCenter * 1.5) * unit},
+        {y: (Math.round(yCenter * 0.5) + 1) * unit, x: Math.round(xCenter * 1.5) * unit},
+        {y: (Math.round(yCenter * 0.5) + 0) * unit, x: Math.round(xCenter * 1.5) * unit},
+        {y: (Math.round(yCenter * 0.5) - 1) * unit, x: Math.round(xCenter * 1.5) * unit},
+        {y: (Math.round(yCenter * 0.5) - 2) * unit, x: Math.round(xCenter * 1.5) * unit}
+      ];
+
+      const snakeLeftTop = [
+        {y: (Math.round(yCenter * 0.5) + 2) * unit, x: Math.round(xCenter * 0.5) * unit},
+        {y: (Math.round(yCenter * 0.5) + 1) * unit, x: Math.round(xCenter * 0.5) * unit},
+        {y: (Math.round(yCenter * 0.5) + 0) * unit, x: Math.round(xCenter * 0.5) * unit},
+        {y: (Math.round(yCenter * 0.5) - 1) * unit, x: Math.round(xCenter * 0.5) * unit},
+        {y: (Math.round(yCenter * 0.5) - 2) * unit, x: Math.round(xCenter * 0.5) * unit}
+      ];
+
+      const snakeRightBottom = [
+        {y: (Math.round(yCenter * 1.5) - 2) * unit, x: Math.round(xCenter * 1.5) * unit},
+        {y: (Math.round(yCenter * 1.5) - 1) * unit, x: Math.round(xCenter * 1.5) * unit},
+        {y: (Math.round(yCenter * 1.5) + 0) * unit, x: Math.round(xCenter * 1.5) * unit},
+        {y: (Math.round(yCenter * 1.5) + 1) * unit, x: Math.round(xCenter * 1.5) * unit},
+        {y: (Math.round(yCenter * 1.5) + 2) * unit, x: Math.round(xCenter * 1.5) * unit}
+      ];
+
+      const snakeLeftBottom = [
+        {y: (Math.round(yCenter * 1.5) - 2) * unit, x: Math.round(xCenter * 0.5) * unit},
+        {y: (Math.round(yCenter * 1.5) - 1) * unit, x: Math.round(xCenter * 0.5) * unit},
+        {y: (Math.round(yCenter * 1.5) + 0) * unit, x: Math.round(xCenter * 0.5) * unit},
+        {y: (Math.round(yCenter * 1.5) + 1) * unit, x: Math.round(xCenter * 0.5) * unit},
+        {y: (Math.round(yCenter * 1.5) + 2) * unit, x: Math.round(xCenter * 0.5) * unit}
+      ];
+
+      let map = {}; // You could also use an array
+
+      clearCanvas = () => {
+        ctx.fillStyle = CANVAS_BACKGROUND_COLOUR;
+        ctx.strokeStyle = CANVAS_BORDER_COLOUR;
+
+        ctx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+        ctx.strokeRect(0, 0, gameCanvas.width, gameCanvas.height);
+      }
+
+      drawSnakePart = (snakePart, color) => {
+        ctx.fillStyle = "light" + color;
+        ctx.strokeStyle = "dark" + color;
+
+        ctx.fillRect(snakePart.x, snakePart.y, unit, unit);
+        ctx.strokeRect(snakePart.x, snakePart.y, unit, unit);
+      }
+
+      drawSnakeHead = (snakeHead, color) => {
+        ctx.fillStyle = color;
+        ctx.strokeStyle = "dark" + color;
+
+        ctx.fillRect(snakeHead.x, snakeHead.y, unit, unit);
+        ctx.strokeRect(snakeHead.x, snakeHead.y, unit, unit);
+        ctx.fillStyle = "black";
+
+        ctx.beginPath();
+        ctx.arc(snakeHead.x + 5, snakeHead.y + 8, 2, 0, 2 * Math.PI, false);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(snakeHead.x + 11, snakeHead.y + 8, 2, 0, 2 * Math.PI, false);
+        ctx.fill();
+
+        // ctx.beginPath();
+        // ctx.arc(snakeHead.x + 8, snakeHead.y + 8, 4, 0, Math.PI, false);
+        // ctx.fill();
+      }
+
+      drawSnake = (snake, color) => {
+        let i = 0;
+        snake.forEach((element) => {
+          if(i == 0) {
+            drawSnakeHead(element,color);
+          } else {
+            drawSnakePart(element, color);
+          }
+          i++;
+        });
+      }
+
+      advanceSnakes = () => {
+
+        const head1 = {x: snake1[0].x + dx1, y: snake1[0].y + dy1}
+        const head2 = {x: snake2[0].x + dx2, y: snake2[0].y + dy2}
+
+        if (!(dx1 == 0 & dy1 == 0)) {
+          snake1.unshift(head1);
+        }
+        if (!(dx2 == 0 & dy2 == 0)) {
+          snake2.unshift(head2);
+        }
+
+        const didEatFood1 = (snake1[0].x === foodX && snake1[0].y === foodY)
+        const didEatFood2 = (snake2[0].x === foodX && snake2[0].y === foodY);
+
+        if (didEatFood1) {
+          createFood();
+          score1 += 1;
+          document.getElementById("score1").innerHTML = score1;
+          if (!(dx2 == 0 & dy2 == 0)) {
+            snake2.pop();
+          }
+          if (time > 10) {
+            time -= 1;
+          }
+        } else if (didEatFood2) {
+          createFood();
+          score2 += 1;
+          document.getElementById("score2").innerHTML = score2;
+          if (!(dx1 == 0 & dy1 == 0)) {
+            snake1.pop();
+          }
+          if (time > 10) {
+            time -= 1;
+          }
+        } else {
+          if (!(dx1 == 0 & dy1 == 0)) {
+            snake1.pop();
+          }
+          if (!(dx2 == 0 & dy2 == 0)) {
+            snake2.pop();
+          }
+        }
+      }
+
+      keydown = keyup = () => {
+        map[event.keyCode] = event.type == 'keydown';
+        if (event.type == "keydown") {
+          if (event.keyCode == 37 || event.keyCode == 39 || event.keyCode == 40 || event.keyCode == 38) {
+            changeDirection1();
+          }
+          if (event.keyCode == 65 || event.keyCode == 68 || event.keyCode == 83 || event.keyCode == 87) {
+            changeDirection2();
+          }
+        }
+      }
+
+      changeDirection2 = () => {
+        const LEFT_KEY = 65;
+        const RIGHT_KEY = 68;
+        const DOWN_KEY = 83;
+        const UP_KEY = 87;
+
+        if (changingDirection2) return;
+
+        changingDirection2 = true;
+
+        let goingUp = dy2 === -unit;
+        let goingDown = dy2 === unit;
+        let goingRight = dx2 === unit;
+        let goingLeft = dx2 === -unit;
+
+        if (dy2 == 0 && dx2 == 0) {
+          if (snake2[0].y - snake2[1].y > 0) {
+            goingDown = true;
+          } else {
+            goingUp = true;
+          }
+        }
+
+        if (map[LEFT_KEY] && !goingRight) {
+          dx2 = -1 * unit;
+          dy2 = 0;
+        }
+
+        if (map[UP_KEY] && !goingDown) {
+          dx2 = 0;
+          dy2 = -1 * unit;
+        }
+
+        if (map[RIGHT_KEY] && !goingLeft) {
+          dx2 = unit;
+          dy2 = 0;
+        }
+
+        if (map[DOWN_KEY] && !goingUp) {
+          dx2 = 0;
+          dy2 = unit;
+        }
+
+        return;
+      }
+
+      changeDirection1 = () => {
+        const LEFT_KEY = 37;
+        const RIGHT_KEY = 39;
+        const DOWN_KEY = 40;
+        const UP_KEY = 38;
+
+        if (changingDirection1) return;
+
+        changingDirection1 = true;
+
+        let goingUp = dy1 === -unit;
+        let goingDown = dy1 === unit;
+        let goingRight = dx1 === unit;
+        let goingLeft = dx1 === -unit;
+
+        if (dy1 == 0 && dx1 == 0) {
+          if (snake1[0].y - snake1[1].y > 0) {
+            goingDown = true;
+          } else {
+            goingUp = true;
+          }
+        }
+
+        if (map[LEFT_KEY] && !goingRight) {
+          dx1 = -1 * unit;
+          dy1 = 0;
+        }
+
+        if (map[UP_KEY] && !goingDown) {
+          dx1 = 0;
+          dy1 = -1 * unit;
+        }
+
+        if (map[RIGHT_KEY] && !goingLeft) {
+          dx1 = unit;
+          dy1 = 0;
+        }
+
+        if (map[DOWN_KEY] && !goingUp) {
+          dx1 = 0;
+          dy1 = unit;
+        }
+
+        return;
+      }
+
+      randomTen = (min, max) => {
+        return Math.round((Math.random() * (max - min) + min) / unit) * unit;
+      }
+
+      createFood = () => {
+        foodX = randomTen(0, gameCanvas.width - unit);
+        foodY = randomTen(0, gameCanvas.height - unit);
+
+        snake1.forEach(isFoodOnSnake = part => {
+          const foodIsOnSnake = part.x == foodX && part.y == foodY
+          if (foodIsOnSnake) {
+            createFood();
+          }
+        });
+
+        snake2.forEach(isFoodOnSnake = part => {
+          const foodIsOnSnake = part.x == foodX && part.y == foodY
+          if (foodIsOnSnake) {
+            createFood();
+          }
+        });
+      }
+
+      drawFood = () => {
+        ctx.fillStyle = 'red';
+        ctx.strokeStyle = 'darkred';
+        ctx.fillRect(foodX, foodY, unit, unit);
+        ctx.strokeRect(foodX, foodY, unit, unit);
+      }
+
+      didGameEnd = () => {
+        if ((score1 >= 30 && score2 >= 30) || (score2 <= -10 && score1 <= -10)) return 3;
+
+        if (score1 >= 30 || score2 <= -10) return 2;
+
+        if (score2 >= 30 || score1 <= -10) return 1;
+      }
+
+      didPlayerDie = (playerCheck, playerOther) => {
+        for (let i=0; i<playerCheck.length; i++) {
+          let hitsSelf1;
+          if (i !== 0) {
+            hitsSelf1 = (playerCheck[i].x === playerCheck[0].x && playerCheck[i].y === playerCheck[0].y);
+          }
+          const hitsOther1 = (playerCheck[i].x === playerOther[0].x && playerCheck[i].y === playerOther[0].y);
+          if (hitsOther1) return 2;
+          if (hitsSelf1) return 1;
+        }
+
+        const hitLeftWall1 = playerCheck[0].x < 0;
+        const hitRightWall1 = playerCheck[0].x > gameCanvas.width - 10;
+        const hitTopWall1 = playerCheck[0].y < 0;
+        const hitBottomWall1 = playerCheck[0].y > gameCanvas.height - 10;
+
+        if (hitLeftWall1 || hitRightWall1 || hitTopWall1 || hitBottomWall1) return 1;
+      }
+
+      verticalAlignText = (text, y) => {
+        ctx.fillStyle = "black";
+        let size = ctx.measureText(text);
+        ctx.fillText(text, Math.round(screenWidth/2 - size.width/2), y);
+      }
+
+      endGame = gameOver => {
+        if (gameOver == 1) {
+          verticalAlignText("Player 1 wins", 100);
+        } else if (gameOver == 2){
+          verticalAlignText("Player 2 wins", 100);
+        } else {
+          verticalAlignText("Draw", 100);
+        }
+        verticalAlignText("Press enter for new game", 300);
+        document.addEventListener("keydown", cont);
+
+      }
+
+      cont = () => {
+        if (event.keyCode == 13) {
+          Game();
+        }
+      }
+
+      respawnPlayer = (playerDead, playerAlive, bothDead = false) => {
+        if (bothDead) {
+          snakesInit();
+          return;
+        }
+
+        let top = true;
+        let left = true;
+
+        if (playerDead == 1) {
+          dx1 = 0;
+          dy1 = 0;
+        } else {
+          dx2 = 0;
+          dy2 = 0;
+        }
+
+        if (playerAlive[0].x > xCenter * unit) {
+          left = false;
+        }
+
+        if (playerAlive[0].y > yCenter * unit) {
+          top = false;
+        }
+
+        if (playerDead == 1) {
+          snake1 = [];
+          if (left && top) {
+            Object.assign(snake1, snakeRightBottom);
+          } else if (left) {
+            Object.assign(snake1, snakeRightTop);
+          } else if (top) {
+            Object.assign(snake1, snakeLeftBottom);
+          } else {
+            Object.assign(snake1, snakeLeftTop);
+          }
+          if (score1 > 0) {
+            for ( let i=0; i<score1; i++) {
+              snake1.push(snake1[snake1.length - 1]);
+            }
+          }
+        } else {
+          snake2 = [];
+          if (left && top) {
+            Object.assign(snake2, snakeRightBottom);
+          } else if (left) {
+            Object.assign(snake2, snakeRightTop);
+          } else if (top) {
+            Object.assign(snake2, snakeLeftBottom);
+          } else {
+            Object.assign(snake2, snakeLeftTop);
+          }
+          if (score2 > 0) {
+            for ( let i=0; i<score1; i++) {
+              snake2.push(snake2[snake2.length - 1]);
+            }
+          }
+        }
+      }
+
+      snakesInit = () => {
+        dx1 = 0;
+        dy1 = 0;
+
+        dx2 = 0;
+        dy2 = 0;
+
+        snake1 = [
+          {y: Math.round(yCenter - 2) * unit, x: Math.round(xCenter * 1.5) * unit},
+          {y: Math.round(yCenter - 1) * unit, x: Math.round(xCenter * 1.5) * unit},
+          {y: Math.round(yCenter + 0) * unit, x: Math.round(xCenter * 1.5) * unit},
+          {y: Math.round(yCenter + 1) * unit, x: Math.round(xCenter * 1.5) * unit},
+          {y: Math.round(yCenter + 2) * unit, x: Math.round(xCenter * 1.5) * unit}
+        ];
+
+        snake2 = [
+          {y: Math.round(yCenter - 2) * unit, x: Math.round(xCenter * 0.5) * unit},
+          {y: Math.round(yCenter - 1) * unit, x: Math.round(xCenter * 0.5) * unit},
+          {y: Math.round(yCenter + 0) * unit, x: Math.round(xCenter * 0.5) * unit},
+          {y: Math.round(yCenter + 1) * unit, x: Math.round(xCenter * 0.5) * unit},
+          {y: Math.round(yCenter + 2) * unit, x: Math.round(xCenter * 0.5) * unit}
+        ];
+      }
+
+      main = () => {
+        const gameOver = didGameEnd();
+        const player1Dead = didPlayerDie(snake1, snake2);
+        const player2Dead = didPlayerDie(snake2, snake1);
+
+
+        if (gameOver) {
+          endGame(gameOver);
+          return;
+        } else if ((player1Dead == 1 && player2Dead == 1) || (player1Dead == 2 && player2Dead == 2)) {
+          score1 -= 5;
+          document.getElementById("score1").innerHTML = score1;
+          score2 -= 5;
+          document.getElementById("score2").innerHTML = score2;
+          respawnPlayer(snake1, snake2, true);
+        } else if (player1Dead == 1 || player2Dead == 2) {
+          score1 -= 5;
+          document.getElementById("score1").innerHTML = score1;
+          respawnPlayer(1, snake2);
+        } else if (player2Dead == 1 || player1Dead == 2) {
+          score2 -= 5;
+          document.getElementById("score2").innerHTML = score2;
+          respawnPlayer(2, snake1);
+        }
+
+        setTimeout(onTick = () => {
+          changingDirection1 = false;
+          changingDirection2 = false;
+          clearCanvas();
+          advanceSnakes();
+          drawSnake(snake1, "blue");
+          drawSnake(snake2, "green");
+          drawFood();
+
+          main();
+        }, time);
+      }
+    </script>
+
+    <script>
+      const CANVAS_BORDER_COLOUR = "black";
+      const CANVAS_BACKGROUND_COLOUR = "white";
+
+      let gameCanvas = document.getElementById("gameCanvas");
+
+      let ctx = gameCanvas.getContext("2d");
+      ctx.font = "50px sans-serif";
+
+      let snake1;
+      let snake2;
+
+      let foodX;
+      let foodY;
+
+      let score1;
+      let score2;
+
+      let dx1;
+      let dx2;
+      let dy1;
+      let dy2;
+
+      let time;
+
+      const Game = () => {
+        document.removeEventListener("keydown", cont)
+        time = 100;
+
+        score1 = 0;
+        score2 = 0;
+        document.getElementById("score1").innerHTML = score1;
+        document.getElementById("score2").innerHTML = score2;
+
+        clearCanvas();
+
+        snakesInit();
+
+        drawSnake(snake1, "blue");
+        drawSnake(snake2, "green");
+
+        createFood();
+        drawFood();
+
+        document.addEventListener("keydown", keydown)
+        document.addEventListener("keyup", keyup)
+
+        main()
+      }
+
+      Game();
+    </script>
+  </body>
+</html>
